@@ -78,6 +78,77 @@ ga('send', 'pageview');
       <div class="outer">
         <section id="main">
   
+    <article id="post-Double-Tap-to-Wake-Nexus-6P" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2016/03/06/Double-Tap-to-Wake-Nexus-6P/" class="article-date">
+  <time datetime="2016-03-06T02:23:30.000Z" itemprop="datePublished">2016-03-06</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2016/03/06/Double-Tap-to-Wake-Nexus-6P/">Double Tap to Wake (Nexus 6P)</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="前言">前言</h1><p>把服役 3 年的蝴蝶機汰換成了 Google 的 Nexus 6P，依照阿宅工程師的一定要先 Root 在加裝 Xposed framework 的阿！一開始一切都很美好，直到我發現當把手機放在桌上想看時間，卻需要按下 Power 鍵來打開螢幕，而不是時下最流行的雙擊螢幕，心中的不滿不斷地增加…</p>
+<h1 id="準備工作">準備工作</h1><p>在 XDA 這個開發者的大本營上找到了如何透過<a href="http://forum.xda-developers.com/showpost.php?p=63654097&amp;postcount=45" target="_blank" rel="external">命令的方式</a>來開起雙擊螢幕的功能，自己也寫了一個簡單的 APP 來達成將下面的指令自動寫入系統。</p>
+<figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">echo <span class="number">1</span> &gt; <span class="regexp">/sys/</span>devices<span class="regexp">/soc.0/</span>f9924000.i2c<span class="regexp">/i2c-2/</span><span class="number">2</span>-<span class="number">0070</span><span class="regexp">/input/i</span>nput0<span class="regexp">/wake_gesture</span></span><br></pre></td></tr></table></figure>
+<h1 id="那個_But">那個 But</h1><p>如同在其他文章都會遇到的情況，就是那個 But；APP 再重開機之後無法自動開啟這個功能，即使加入了 BOOT_COMPLETED 的 Receiver 也一樣，本來想著是可能是剛開機系統還沒有完全 Ready，需要多寫入幾次，但發現這樣是不行的…</p>
+<pre><code>測試方法：
+安裝 <span class="keyword">APP</span> 開啟雙擊功能，重開機後，不要按 Power 鍵或是掃描指紋，就這樣放著等幾分鐘，
+你會發現雙擊功能還是沒辦法用，必須解鎖後重新執行 <span class="keyword">APP</span> 才可以。
+</code></pre><h1 id="原因">原因</h1><p>經過調查，Double to Wake 的 Sensor 是屬於 Non-wake-up sensors，根據 <a href="https://source.android.com/devices/sensors/suspend-mode.html" target="_blank" rel="external">Google Android 說明</a> 指出：</p>
+<pre><code>Non-wake-up sensors are sensors that <span class="operator"><span class="keyword">do</span> <span class="keyword">not</span> prevent the SoC <span class="keyword">from</span> going 
+<span class="keyword">into</span> suspend <span class="keyword">mode</span> <span class="keyword">and</span> <span class="keyword">do</span> <span class="keyword">not</span> wake the SoC up <span class="keyword">to</span> report <span class="keyword">data</span>. 
+<span class="keyword">In</span> particular, the drivers <span class="keyword">are</span> <span class="keyword">not</span> allowed <span class="keyword">to</span> hold wake-locks.</span>
+</code></pre><p>簡單來說，當 SoC 處在 Suspend mode 之時，SoC 不會處理對應的事件（Event）。重開機之後的 Nexus 6P，預設的電源狀態是 Suspend mode，對應的 Sensor 也不會啟動，導致重開機後 APP 執行前述命令後，該設定仍然無法寫入到 Sensor，自然的 Double Tap to Wake 的功能就自動失效了。</p>
+<h1 id="解決方案">解決方案</h1><ol>
+<li>重新編譯 Kernel，重新定義 Sensor type</li>
+<li>Boot completed 後，喚醒 APP 後讓 SoC 先進入 “On mode” 再執行前述命令</li>
+</ol>
+<p>最後採用了方案 2：簡單直接，同樣的這也有兩種方案可以選擇</p>
+<ol>
+<li>APP 使用 WakeUp lock 來喚醒 SoC</li>
+<li>APP 模擬 Power Button 動作</li>
+</ol>
+<p>當然方案 2，還是我的首選 :p</p>
+<h1 id="結論">結論</h1><p>廢話不多說 APP 與 Source Code 在這裡</p>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.blakey22.doubletapwake" target="_blank" rel="external">APP</a></li>
+<li><a href="https://github.com/blakey22/doubletapwake" target="_blank" rel="external">Source Code</a></li>
+</ul>
+<h1 id="參考文件">參考文件</h1><ul>
+<li><a href="https://developer.android.com/reference/android/os/PowerManager.html" target="_blank" rel="external">https://developer.android.com/reference/android/os/PowerManager.html</a></li>
+<li><a href="http://processors.wiki.ti.com/index.php/Android_Devkit_Power_Management_Porting_Guide" target="_blank" rel="external">http://processors.wiki.ti.com/index.php/Android_Devkit_Power_Management_Porting_Guide</a></li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://blakey22.github.io/2016/03/06/Double-Tap-to-Wake-Nexus-6P/" data-id="cilhmr8b6000004hljn795zh9" class="article-share-link">Share</a>
+      
+        <a href="http://blakey22.github.io/2016/03/06/Double-Tap-to-Wake-Nexus-6P/#disqus_thread" class="article-comment-link">Comments</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Android/">Android</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-Taiwan-bus-info" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     <a href="/2015/12/29/Taiwan-bus-info/" class="article-date">
@@ -181,7 +252,7 @@ ga('send', 'pageview');
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://blakey22.github.io/2015/12/29/Taiwan-bus-info/" data-id="ciir7uvlx00036chlphlvw07m" class="article-share-link">Share</a>
+      <a data-url="http://blakey22.github.io/2015/12/29/Taiwan-bus-info/" data-id="cilhmr8bh000304hlvhbo772z" class="article-share-link">Share</a>
       
         <a href="http://blakey22.github.io/2015/12/29/Taiwan-bus-info/#disqus_thread" class="article-comment-link">Comments</a>
       
@@ -246,7 +317,7 @@ ga('send', 'pageview');
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://blakey22.github.io/2015/07/27/Shadowsocks-for-Java/" data-id="ciir7uvlh00006chlyl4encun" class="article-share-link">Share</a>
+      <a data-url="http://blakey22.github.io/2015/07/27/Shadowsocks-for-Java/" data-id="cilhmr8jn000604hlxlxtme3x" class="article-share-link">Share</a>
       
         <a href="http://blakey22.github.io/2015/07/27/Shadowsocks-for-Java/#disqus_thread" class="article-comment-link">Comments</a>
       
@@ -271,7 +342,7 @@ ga('send', 'pageview');
   <div class="widget-wrap">
     <h3 class="widget-title">Tags</h3>
     <div class="widget">
-      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/OpenData/">OpenData</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/shadowsocks/">shadowsocks</a><span class="tag-list-count">1</span></li></ul>
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Android/">Android</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/OpenData/">OpenData</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/shadowsocks/">shadowsocks</a><span class="tag-list-count">1</span></li></ul>
     </div>
   </div>
 
@@ -280,7 +351,7 @@ ga('send', 'pageview');
   <div class="widget-wrap">
     <h3 class="widget-title">Tag Cloud</h3>
     <div class="widget tagcloud">
-      <a href="/tags/OpenData/" style="font-size: 10px;">OpenData</a> <a href="/tags/shadowsocks/" style="font-size: 10px;">shadowsocks</a>
+      <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/OpenData/" style="font-size: 10px;">OpenData</a> <a href="/tags/shadowsocks/" style="font-size: 10px;">shadowsocks</a>
     </div>
   </div>
 
@@ -289,7 +360,7 @@ ga('send', 'pageview');
   <div class="widget-wrap">
     <h3 class="widget-title">Archives</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">July 2015</a><span class="archive-list-count">1</span></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">July 2015</a><span class="archive-list-count">1</span></li></ul>
     </div>
   </div>
 
@@ -299,6 +370,10 @@ ga('send', 'pageview');
     <h3 class="widget-title">Recents</h3>
     <div class="widget">
       <ul>
+        
+          <li>
+            <a href="/2016/03/06/Double-Tap-to-Wake-Nexus-6P/">Double Tap to Wake (Nexus 6P)</a>
+          </li>
         
           <li>
             <a href="/2015/12/29/Taiwan-bus-info/">台灣公車 Open Data</a>
@@ -320,7 +395,7 @@ ga('send', 'pageview');
   
   <div class="outer">
     <div id="footer-info" class="inner">
-      &copy; 2015 blakey22<br>
+      &copy; 2016 blakey22<br>
       Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
     </div>
   </div>
